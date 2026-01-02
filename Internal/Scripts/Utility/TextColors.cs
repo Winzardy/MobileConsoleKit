@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public static class TextColors 
 {	
@@ -32,19 +33,16 @@ public static class TextColors
 		return string.Format("<color=#{0}>{1}</color>", ColorUtility.ToHtmlStringRGB(color), text);
 	}
 
-	static int GetHashCode(string text)
+	static int GetHashCode(string str)
 	{
-		if (string.IsNullOrEmpty(text))
-			return 0;
+		var hashCode = new HashCode();
+		hashCode.Add(5381);
 
-		int hash = 0;
-		int length = text.Length;
-		
-		for (int index = 0; index < length; ++index)
-		{
-			hash = (hash << 5) - hash + text[index];
-		}
+		for (int i = 0; i < str.Length; i++)
+			hashCode.Add(str[i]);
+		for (int i = str.Length - 1; i >= 0; i--)
+			hashCode.Add(str[i]);
 
-		return hash;
+		return hashCode.ToHashCode();
 	}
 }
