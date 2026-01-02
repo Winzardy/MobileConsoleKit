@@ -130,8 +130,10 @@ namespace MobileConsole
 					Command command = (Command)Activator.CreateInstance(commandType);
 					command.CacheVariableInfos(commandType);
 					command.CacheCustomButtonInfos(commandType, typeof(ButtonAttribute));
-					command.info.CopyData(attribute, commandType);
-					
+					bool addEllipsis = LogConsoleSettings.Instance.useEllipsisForComplexCommands &&
+					                   command.info.IsComplex();
+					command.info.CopyData(attribute, commandType, addEllipsis);
+
 					try
 					{
 						command.InitDefaultVariableValue();

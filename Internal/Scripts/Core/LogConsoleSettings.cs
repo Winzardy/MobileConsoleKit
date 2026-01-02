@@ -80,6 +80,8 @@ namespace MobileConsole
 		[Header("Views")]
 		public bool useCategoryColor = true;
 
+		public bool useEllipsisForComplexCommands;
+
 		void Init()
 		{
 			fullChannelFormat = channelFormat + " " + "{1}";

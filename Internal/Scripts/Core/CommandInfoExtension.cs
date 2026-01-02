@@ -4,13 +4,15 @@ namespace MobileConsole
 {
 	public static class CommandInfoExtension
 	{
-		public static void CopyData(this CommandInfo info, ExecutableCommandAttribute attribute, Type type)
+		public static void CopyData(this CommandInfo info, ExecutableCommandAttribute attribute, Type type, bool addEllipsis)
 		{
 			string[] paths = null;
 			if (attribute.name != null)
 			{
-				info.fullPath = attribute.name;
-				paths = attribute.name.Trim('/').Split('/');
+				info.fullPath = attribute.name.Trim('/');
+				if (addEllipsis && !info.fullPath.EndsWith("..."))
+					info.fullPath += "...";
+				paths = info.fullPath.Split('/');
 			}
 
 			if (paths == null || paths.Length == 0)
