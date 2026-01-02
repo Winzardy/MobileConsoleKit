@@ -29,7 +29,16 @@ namespace MobileConsole.UI
 
 		void OnCommandSelected(GenericNodeView nodeView)
 		{
-			Command command = _commands.Find(c => c.info.name == nodeView.name);
+			string nodePath = nodeView.name;
+			Node parent = nodeView.parent;
+			while (parent != null)
+			{
+				if (parent.name != null)
+					nodePath = $"{parent.name}/{nodePath}";
+				parent = parent.parent;
+			}
+
+			Command command = _commands.Find(c => c.info.fullPath == nodePath);
 			if (command != null)
 			{
 				if (command.info.IsComplex())
