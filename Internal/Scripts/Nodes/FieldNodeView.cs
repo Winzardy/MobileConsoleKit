@@ -255,12 +255,15 @@ namespace MobileConsole.UI
 
 			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, string[] options)
 			{
-				return (int)variableInfo.fieldInfo.GetValue(command);
+				object enumValue = variableInfo.fieldInfo.GetValue(command);
+				string enumName = Enum.GetName(variableInfo.fieldInfo.FieldType, enumValue);
+				return Array.IndexOf(options, enumName);
 			}
 
 			public override void OnValueChanged(Command command, VariableInfo variableInfo, string[] options, int index)
 			{
-				variableInfo.fieldInfo.SetValue(command, index);
+				object enumValue = Enum.Parse(variableInfo.fieldInfo.FieldType, options[index]);
+				variableInfo.fieldInfo.SetValue(command, enumValue);
 			}
 		}
 
