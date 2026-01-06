@@ -35,14 +35,15 @@ public static class TextColors
 
 	static int GetHashCode(string str)
 	{
-		var hashCode = new HashCode();
-		hashCode.Add(5381);
+		unchecked
+		{
+			int hashCode = 5381;
+			for (int i = 0; i < str.Length; i++)
+				hashCode = ((hashCode << 5) + hashCode) ^ str[i];
+			for (int i = str.Length - 1; i >= 0; i--)
+				hashCode = ((hashCode << 5) + hashCode) ^ str[i];
 
-		for (int i = 0; i < str.Length; i++)
-			hashCode.Add(str[i]);
-		for (int i = str.Length - 1; i >= 0; i--)
-			hashCode.Add(str[i]);
-
-		return hashCode.ToHashCode();
+			return hashCode;
+		}
 	}
 }
