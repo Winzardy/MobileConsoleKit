@@ -393,7 +393,7 @@ namespace MobileConsole
 		{
 			if (Application.platform == RuntimePlatform.IPhonePlayer)
 				return;
-			
+
             if (Input.GetKeyUp(KeyCode.Escape))
             {
 				if (_stackViewBuilders.Count > 0)
@@ -406,6 +406,6 @@ namespace MobileConsole
 				}
             }
 		}
-	}
 #endif
+	}
 }
