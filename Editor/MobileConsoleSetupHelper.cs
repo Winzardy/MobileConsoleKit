@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -49,7 +49,6 @@ namespace MobileConsole.Editor
 			AddDebugLogDefineSymbolForGroup(BuildTargetGroup.Android);
 			AddDebugLogDefineSymbolForGroup(BuildTargetGroup.Standalone);
 			AddLogConsoleToBuildSettings();
-			EnableDevelopmentBuild();
 			Debug.Log("Enable Mobile Console Completed");
 		}
 
