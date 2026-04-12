@@ -39,6 +39,7 @@ namespace MobileConsole.UI
 			try
 			{
 				_command.Execute();
+				RecentCommandsHistory.Record(_command);
 			}
 			catch (Exception e)
 			{

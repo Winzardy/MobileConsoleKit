@@ -7,38 +7,20 @@ namespace MobileConsole.UI
 	public class CommandViewBuilder : ViewBuilder
 	{
 		const string ClassName = "CommandView";
+		const string RecentCategoryName = "Recent";
 		Dictionary<Command, CommandDetailViewBuilder> _commandDetailViewBuilders = new Dictionary<Command, CommandDetailViewBuilder>();
 		readonly List<Command> _commands;
 
 		public CommandViewBuilder(List<Command> commands)
 		{
 			_commands = commands;
-			foreach (var command in _commands)
-			{
-				CategoryNodeView currentNode = CreateCategories(command.info.categories);
-				AddButton(command.info.name, "command", OnCommandSelected, currentNode);
-			}
-
-			CategoryPlayerPrefs.LoadCategoryStates(_rootNode, ClassName);
-
-			if (LogConsoleSettings.Instance.useCategoryColor)
-				NodeColor.AdjustIconColor(_rootNode);
-
-			_rootNode.Sort(DefaultCompareNode);
+			RecentCommandsHistory.OnChanged += OnRecentCommandsChanged;
+			BuildTree();
 		}
 
 		void OnCommandSelected(GenericNodeView nodeView)
 		{
-			string nodePath = nodeView.name;
-			Node parent = nodeView.parent;
-			while (parent != null)
-			{
-				if (parent.name != null)
-					nodePath = $"{parent.name}/{nodePath}";
-				parent = parent.parent;
-			}
-
-			Command command = _commands.Find(c => c.info.fullPath == nodePath);
+			Command command = nodeView.data as Command;
 			if (command != null)
 			{
 				if (command.info.IsComplex())
@@ -55,6 +37,7 @@ namespace MobileConsole.UI
 					try
 					{
 						command.Execute();
+						RecentCommandsHistory.Record(command);
 					}
 					catch (Exception e)
 					{
@@ -70,6 +53,77 @@ namespace MobileConsole.UI
 		{
 			base.OnCategoryToggled(nodeView);
 			CategoryPlayerPrefs.SaveCategoryState(nodeView, ClassName);
+		}
+
+		void OnRecentCommandsChanged()
+		{
+			BuildTree();
+			Rebuild();
+		}
+
+		void BuildTree()
+		{
+			ClearNodes();
+
+			CategoryNodeView recentCategory = CreateCategory(RecentCategoryName);
+			foreach (var recentCommand in RecentCommandsHistory.ResolveCommands(_commands))
+			{
+				GenericNodeView node = AddButton(recentCommand.info.fullPath, "command", OnCommandSelected, recentCategory);
+				node.data = recentCommand;
+			}
+
+			foreach (var command in _commands)
+			{
+				CategoryNodeView currentNode = CreateCategories(command.info.categories);
+				GenericNodeView node = AddButton(command.info.name, "command", OnCommandSelected, currentNode);
+				node.data = command;
+			}
+
+			CategoryPlayerPrefs.LoadCategoryStates(_rootNode, ClassName);
+
+			if (LogConsoleSettings.Instance.useCategoryColor)
+				NodeColor.AdjustIconColor(_rootNode);
+
+			SortTree();
+		}
+
+		void SortTree()
+		{
+			_rootNode.children.Sort(CompareRootNode);
+			foreach (var child in _rootNode.children)
+			{
+				SortNodeRecursive(child);
+			}
+		}
+
+		void SortNodeRecursive(Node node)
+		{
+			if (node == null || node.children.Count == 0)
+				return;
+
+			if (node.parent == _rootNode && node.name == RecentCategoryName)
+				return;
+
+			node.children.Sort(DefaultCompareNode);
+			foreach (var child in node.children)
+			{
+				SortNodeRecursive(child);
+			}
+		}
+
+		int CompareRootNode(Node nodeA, Node nodeB)
+		{
+			bool isRecentA = nodeA.name == RecentCategoryName;
+			bool isRecentB = nodeB.name == RecentCategoryName;
+			if (isRecentA || isRecentB)
+			{
+				if (isRecentA && isRecentB)
+					return 0;
+
+				return isRecentA ? -1 : 1;
+			}
+
+			return DefaultCompareNode(nodeA, nodeB);
 		}
 	}
 }

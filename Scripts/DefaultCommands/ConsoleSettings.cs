@@ -42,6 +42,9 @@ namespace MobileConsole
 		[Variable(OnValueChanged = "UpdateShowChannel")]
 		public bool _showChannel;
 
+		[Variable(OnValueChanged = "UpdateRecentCommandsLimit")]
+		public int _recentCommandsLimit;
+
 		public override void InitDefaultVariableValue()
 		{
 			_showFPS = LogConsoleSettings.Instance.showFPS;
@@ -52,6 +55,7 @@ namespace MobileConsole
 			_windowPosX = LogConsoleSettings.Instance.windowPosX;
 			_windowPosY = LogConsoleSettings.Instance.windowPosY;
 			_backgroundTransparency = LogConsoleSettings.Instance.backgroundTransparency;
+			_recentCommandsLimit = LogConsoleSettings.Instance.recentCommandsLimit;
 		}
 
 		void UpdateTimeScale()
@@ -91,6 +95,13 @@ namespace MobileConsole
 		{
 			LogConsoleSettings.Instance.backgroundTransparency = _backgroundTransparency;
 			EventBridge.NotifyBackgroundTransparencyChanged();
+		}
+
+		void UpdateRecentCommandsLimit()
+		{
+			_recentCommandsLimit = Mathf.Max(0, _recentCommandsLimit);
+			LogConsoleSettings.Instance.recentCommandsLimit = _recentCommandsLimit;
+			RecentCommandsHistory.EnforceLimit();
 		}
 
 		float[] TimeScaleOptions()

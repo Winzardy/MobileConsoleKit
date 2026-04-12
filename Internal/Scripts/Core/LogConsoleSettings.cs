@@ -82,6 +82,9 @@ namespace MobileConsole
 
 		public bool useEllipsisForComplexCommands;
 
+		[Min(0)]
+		public int recentCommandsLimit = 10;
+
 		void Init()
 		{
 			fullChannelFormat = channelFormat + " " + "{1}";
