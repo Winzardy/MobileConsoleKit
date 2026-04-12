@@ -8,5 +8,6 @@ namespace MobileConsole
         public string name;
         public string description;
         public int order = 0;
+        public bool isFavorite = false;
     }
 }

@@ -7,6 +7,7 @@ namespace MobileConsole.UI
 	public class CommandViewBuilder : ViewBuilder
 	{
 		const string ClassName = "CommandView";
+		const string FavoritesCategoryName = "Favorites";
 		const string RecentCategoryName = "Recent";
 		Dictionary<Command, CommandDetailViewBuilder> _commandDetailViewBuilders = new Dictionary<Command, CommandDetailViewBuilder>();
 		readonly List<Command> _commands;
@@ -65,6 +66,17 @@ namespace MobileConsole.UI
 		{
 			ClearNodes();
 
+			CategoryNodeView favoriteCategory = CreateCategory(FavoritesCategoryName);
+			foreach (var command in _commands)
+			{
+				if (!command.info.isFavorite)
+					continue;
+
+				string commandName = string.IsNullOrEmpty(command.info.fullPath) ? command.info.name : command.info.fullPath;
+				GenericNodeView node = AddButton(commandName, "command", OnCommandSelected, favoriteCategory);
+				node.data = command;
+			}
+
 			CategoryNodeView recentCategory = CreateCategory(RecentCategoryName);
 			foreach (var recentCommand in RecentCommandsHistory.ResolveCommands(_commands))
 			{
@@ -101,7 +113,7 @@ namespace MobileConsole.UI
 			if (node == null || node.children.Count == 0)
 				return;
 
-			if (node.parent == _rootNode && node.name == RecentCategoryName)
+			if (node.parent == _rootNode && (node.name == FavoritesCategoryName || node.name == RecentCategoryName))
 				return;
 
 			node.children.Sort(DefaultCompareNode);
@@ -113,17 +125,25 @@ namespace MobileConsole.UI
 
 		int CompareRootNode(Node nodeA, Node nodeB)
 		{
-			bool isRecentA = nodeA.name == RecentCategoryName;
-			bool isRecentB = nodeB.name == RecentCategoryName;
-			if (isRecentA || isRecentB)
+			int categoryOrderA = GetRootCategoryOrder(nodeA);
+			int categoryOrderB = GetRootCategoryOrder(nodeB);
+			if (categoryOrderA != categoryOrderB)
 			{
-				if (isRecentA && isRecentB)
-					return 0;
-
-				return isRecentA ? -1 : 1;
+				return categoryOrderA.CompareTo(categoryOrderB);
 			}
 
 			return DefaultCompareNode(nodeA, nodeB);
+		}
+
+		int GetRootCategoryOrder(Node node)
+		{
+			if (node.name == FavoritesCategoryName)
+				return 0;
+
+			if (node.name == RecentCategoryName)
+				return 1;
+
+			return 2;
 		}
 	}
 }

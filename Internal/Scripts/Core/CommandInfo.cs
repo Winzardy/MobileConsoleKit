@@ -11,6 +11,7 @@ namespace MobileConsole
 		public string name;
 		public string description;
 		public int order;
+		public bool isFavorite;
 		public ActionAfterExecuted actionAfterExecuted = ActionAfterExecuted.CloseAllSubView;
 
 		public bool IsComplex()
