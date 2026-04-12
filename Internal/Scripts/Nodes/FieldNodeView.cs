@@ -35,6 +35,22 @@ namespace MobileConsole.UI
 			return cell;
 		}
 
+		public override float CellSize()
+		{
+			if (_cellIdentifier != ID_DROPDOWN_CELL)
+			{
+				return base.CellSize();
+			}
+
+			DropdownAttribute dropdownAttr;
+			if (_variableInfo.fieldInfo.HasAttribute<DropdownAttribute>(out dropdownAttr) && dropdownAttr.enableFiltering)
+			{
+				return 160.0f;
+			}
+
+			return base.CellSize();
+		}
+
 		protected void CreateCellControl()
 		{
 			switch (_cellIdentifier)
@@ -199,6 +215,7 @@ namespace MobileConsole.UI
 		{
 			_dropdownCell = (BaseDropdownCell)cell;
 			_dropdownCell.OnValueChanged = OnValueChanged;
+			_dropdownCell.SetFilterEnabled(IsFilteringEnabled());
 
 			_dropdownField = null;
 			foreach (var dropdownField in _presetDropdownFields)
@@ -239,6 +256,17 @@ namespace MobileConsole.UI
 
 			_dropdownCell.SetOptions(_options);
 			_dropdownCell.SetIndex(dropdownIndex);
+		}
+
+		bool IsFilteringEnabled()
+		{
+			DropdownAttribute dropdownAttr;
+			if (!variableInfo.fieldInfo.HasAttribute<DropdownAttribute>(out dropdownAttr))
+			{
+				return false;
+			}
+
+			return dropdownAttr.enableFiltering;
 		}
 
 		void OnValueChanged(BaseDropdownCell cell, int index)

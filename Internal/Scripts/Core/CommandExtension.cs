@@ -56,10 +56,13 @@ namespace MobileConsole
 				VariableAttribute attribute;
 				if (fieldInfo.HasAttribute<VariableAttribute>(out attribute))
 				{
-					variableInfo.callbackMethodInfo = type.GetMethod(attribute.OnValueChanged, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
-					if (variableInfo.callbackMethodInfo == null)
+					if (!string.IsNullOrEmpty(attribute.OnValueChanged))
 					{
-						Debug.LogWarningFormat("Could not found method <b>{0}</b> in <b>{1}</b>", attribute.OnValueChanged, type.Name);
+						variableInfo.callbackMethodInfo = type.GetMethod(attribute.OnValueChanged, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+						if (variableInfo.callbackMethodInfo == null)
+						{
+							Debug.LogWarningFormat("Could not found method <b>{0}</b> in <b>{1}</b>", attribute.OnValueChanged, type.Name);
+						}
 					}
 				}
 
