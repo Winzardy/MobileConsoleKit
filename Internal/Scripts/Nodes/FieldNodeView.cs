@@ -181,6 +181,8 @@ namespace MobileConsole.UI
 
 	public class DropdownCellControl : BaseCellControl
 	{
+		const string EMPTY_OPTIONS_PLACEHOLDER = "--no-elements--";
+
 		static IDropdownField[] _presetDropdownFields = new IDropdownField[]
 		{
 			new EnumDropdownField(),
@@ -191,6 +193,7 @@ namespace MobileConsole.UI
 		BaseDropdownCell _dropdownCell;
 		IDropdownField _dropdownField;
 		string[] _options;
+		bool _isNoElementsState;
 
 		public override void UpdateData(ScrollViewCell cell)
 		{
@@ -209,14 +212,29 @@ namespace MobileConsole.UI
 
 			if (_dropdownField == null || _options == null || _options.Length == 0)
 			{
-				throw new System.Exception("There is something wrong!");
+				_isNoElementsState = true;
+				_options = new[] { EMPTY_OPTIONS_PLACEHOLDER };
+				_dropdownCell.SetOptions(_options);
+				_dropdownCell.SetIndex(0);
+				_dropdownCell.SetInteractable(false);
+
+				if (variableInfo.fieldInfo.FieldType == typeof(string))
+				{
+					variableInfo.fieldInfo.SetValue(command, EMPTY_OPTIONS_PLACEHOLDER);
+				}
+
+				return;
 			}
+
+			_isNoElementsState = false;
+			_dropdownCell.SetInteractable(true);
 
 			// If the field doesn't have value yet, set it to the first element (0) in options
 			int dropdownIndex = _dropdownField.GetDropdownIndex(command, variableInfo, _options);
 			if (dropdownIndex == -1)
 			{
-                _dropdownField.OnValueChanged(command, variableInfo, _options, 0);
+                dropdownIndex = 0;
+                _dropdownField.OnValueChanged(command, variableInfo, _options, dropdownIndex);
 			}
 
 			_dropdownCell.SetOptions(_options);
@@ -225,6 +243,11 @@ namespace MobileConsole.UI
 
 		void OnValueChanged(BaseDropdownCell cell, int index)
 		{
+			if (_isNoElementsState || _dropdownField == null || _options == null || index < 0 || index >= _options.Length)
+			{
+				return;
+			}
+
 			_dropdownField.OnValueChanged(command, variableInfo, _options, index);
 			base.OnValueChanged();
 		}
@@ -347,10 +370,17 @@ namespace MobileConsole.UI
 					throw new Exception("Could not retrieve options from method name: " + dropdownAttr.methodName);
 				}
 
+				if (fieldOptions == null)
+				{
+					options = null;
+					return true;
+				}
+
 				options = new string[fieldOptions.Length];
 				for (int i = 0; i < fieldOptions.Length; i++)
 				{
-					options[i] = fieldOptions.GetValue(i).ToString();
+					object option = fieldOptions.GetValue(i);
+					options[i] = option != null ? option.ToString() : string.Empty;
 				}
 
 				return true;

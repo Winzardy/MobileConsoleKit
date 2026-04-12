@@ -7,6 +7,7 @@
 
 		public abstract void SetOptions(string[] options);
 		public abstract void SetIndex(int index);
+		public abstract void SetInteractable(bool interactable);
 
 		public void NotifyOnValueChanged(int index)
 		{

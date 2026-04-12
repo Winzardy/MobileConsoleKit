@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 
@@ -41,6 +42,7 @@ namespace MobileConsole.UI
 		public override void SetOptions(string[] options)
 		{
 			_canDispatch = false;
+			options = options ?? Array.Empty<string>();
 
 			_dropdown.options.Clear();
 			for (int i = 0; i < options.Length; i++)
@@ -50,6 +52,11 @@ namespace MobileConsole.UI
 			}
 
 			_canDispatch = true;
+		}
+
+		public override void SetInteractable(bool interactable)
+		{
+			_dropdown.interactable = interactable;
 		}
 
 		public override void SetHeaderOffset(float offset)
