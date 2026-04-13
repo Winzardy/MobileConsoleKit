@@ -94,9 +94,39 @@ namespace MobileConsole.UI
 			CategoryPlayerPrefs.LoadCategoryStates(_rootNode, ClassName);
 
 			if (LogConsoleSettings.Instance.useCategoryColor)
+			{
 				NodeColor.AdjustIconColor(_rootNode);
+				ApplySpecialCategoryCommandColors(FavoritesCategoryName);
+				ApplySpecialCategoryCommandColors(RecentCategoryName);
+			}
 
 			SortTree();
+		}
+
+		void ApplySpecialCategoryCommandColors(string categoryName)
+		{
+			Node categoryNode = _rootNode.FindChildByName(categoryName);
+			if (categoryNode == null)
+				return;
+
+			foreach (var child in categoryNode.children)
+			{
+				GenericNodeView commandNode = child as GenericNodeView;
+				if (commandNode == null)
+					continue;
+
+				Command command = commandNode.data as Command;
+				if (command == null || command.info == null)
+					continue;
+
+				if (command.info.categories == null || command.info.categories.Length == 0 || string.IsNullOrEmpty(command.info.categories[0]))
+				{
+					commandNode.iconColor = Color.white;
+					continue;
+				}
+
+				commandNode.iconColor = TextColors.GetUniqueColor(command.info.categories[0], 0.4f, 1.0f);
+			}
 		}
 
 		void SortTree()
