@@ -55,6 +55,7 @@ namespace MobileConsole.UI
 				try
 				{
 					methodInfo.Invoke(_command, null);
+					RecentCommandsHistory.Record(_command);
 				}
 				catch (System.Exception e)
 				{
