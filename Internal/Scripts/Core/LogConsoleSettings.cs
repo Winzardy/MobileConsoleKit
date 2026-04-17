@@ -82,6 +82,7 @@ namespace MobileConsole
 
 		public bool useEllipsisForComplexCommands;
 		public ActionAfterExecuted defaultCommandActionAfterExecuted = ActionAfterExecuted.CloseAllSubView;
+		public ActionAfterExecuted defaultCustomButtonActionAfterExecuted = ActionAfterExecuted.DoNothing;
 
 		[Min(0)]
 		public int recentCommandsLimit = 10;

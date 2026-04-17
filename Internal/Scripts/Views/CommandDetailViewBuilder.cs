@@ -6,6 +6,12 @@ namespace MobileConsole.UI
 {
 	public class CommandDetailViewBuilder : ViewBuilder
 	{
+		class CustomButtonData
+		{
+			public MethodInfo methodInfo;
+			public ActionAfterExecuted actionAfterExecuted;
+		}
+
 		readonly Command _command;
 
 		public CommandDetailViewBuilder(Command command)
@@ -30,7 +36,11 @@ namespace MobileConsole.UI
 
 				string icon = !string.IsNullOrEmpty(attribute.icon) ? attribute.icon : "action";
 				Node buttonNode = AddButton(methodInfo.Name.GetReadableName(), icon, OnCustomButtom, methodParent);
-				buttonNode.data = methodInfo;
+				buttonNode.data = new CustomButtonData()
+				{
+					methodInfo = methodInfo,
+					actionAfterExecuted = GetCustomButtonActionAfterExecuted(methodInfo, attribute),
+				};
 			}
 		}
 
@@ -49,19 +59,39 @@ namespace MobileConsole.UI
 
 		void OnCustomButtom(GenericNodeView nodeView)
 		{
-			MethodInfo methodInfo = (MethodInfo)nodeView.data;
-			if (methodInfo != null)
+			CustomButtonData buttonData = nodeView.data as CustomButtonData;
+			if (buttonData != null && buttonData.methodInfo != null)
 			{
 				try
 				{
-					methodInfo.Invoke(_command, null);
+					buttonData.methodInfo.Invoke(_command, null);
 					RecentCommandsHistory.Record(_command);
+					buttonData.actionAfterExecuted.Process();
 				}
 				catch (System.Exception e)
 				{
 					Debug.LogException(e);
 				}
 			}
+		}
+
+		ActionAfterExecuted GetCustomButtonActionAfterExecuted(MethodInfo methodInfo, ButtonAttribute attribute)
+		{
+			if (attribute == null || attribute.actionAfterExecutedRaw < 0)
+			{
+				return LogConsoleSettings.Instance.defaultCustomButtonActionAfterExecuted;
+			}
+
+			if (Enum.IsDefined(typeof(ActionAfterExecuted), attribute.actionAfterExecutedRaw))
+			{
+				return (ActionAfterExecuted)attribute.actionAfterExecutedRaw;
+			}
+
+			Debug.LogWarningFormat("Invalid actionAfterExecutedRaw [{0}] for button [{1}] in command [{2}]. Fallback to LogConsoleSettings.defaultCustomButtonActionAfterExecuted.",
+				attribute.actionAfterExecutedRaw,
+				methodInfo.Name,
+				_command.GetType().Name);
+			return LogConsoleSettings.Instance.defaultCustomButtonActionAfterExecuted;
 		}
 
 		public override void OnPrepareToShow()
