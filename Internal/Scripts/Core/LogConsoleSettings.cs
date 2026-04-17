@@ -81,6 +81,7 @@ namespace MobileConsole
 		public bool useCategoryColor = true;
 
 		public bool useEllipsisForComplexCommands;
+		public ActionAfterExecuted defaultCommandActionAfterExecuted = ActionAfterExecuted.CloseAllSubView;
 
 		[Min(0)]
 		public int recentCommandsLimit = 10;

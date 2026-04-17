@@ -7,6 +7,11 @@ namespace MobileConsole
 		public CommandInfo info = new CommandInfo();
 		public Action refreshUI;
 
+		public Command()
+		{
+			info.actionAfterExecuted = LogConsoleSettings.Instance.defaultCommandActionAfterExecuted;
+		}
+
 		public virtual void InitDefaultVariableValue() {}
 
 		public virtual void OnVariableValueLoaded() {}
