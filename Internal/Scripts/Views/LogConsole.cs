@@ -30,6 +30,7 @@ namespace MobileConsole
 		public static event EventCommandsCreated OnCommandsCreated;
 		private static bool _hasCommandsCreated = false;
 		private static List<Command> _commands = new List<Command>();
+		readonly CommandHotKeyProcessor _hotKeyProcessor = new CommandHotKeyProcessor();
 
 		[SerializeField]
 		Vector2 _designLandscapeResolution;
@@ -120,6 +121,7 @@ namespace MobileConsole
 			Type[] commandTypes = TypeCollector.GetClassesOfClass(typeof(Command));
 			List<Command> executableCommands = new List<Command>();
 			List<Command> settingCommands = new List<Command>();
+			_hotKeyProcessor.Clear();
 
 			// Init executable command
 			foreach (var commandType in commandTypes)
@@ -146,6 +148,7 @@ namespace MobileConsole
 					}
 					
 					executableCommands.Add(command);
+					_hotKeyProcessor.Register(command, attribute);
 				}
 			}
 			_commandViewBuilder = new CommandViewBuilder(executableCommands);
@@ -393,6 +396,8 @@ namespace MobileConsole
 		{
 			if (Application.platform == RuntimePlatform.IPhonePlayer)
 				return;
+
+			_hotKeyProcessor.Process();
 
             if (Input.GetKeyUp(KeyCode.Escape))
             {

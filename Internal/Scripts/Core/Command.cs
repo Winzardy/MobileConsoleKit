@@ -18,6 +18,15 @@ namespace MobileConsole
 
 		public virtual void Execute() {}
 
+		public virtual void OnHotKeyDown()
+		{
+			Execute();
+		}
+
+		public virtual void OnHotKeyUp() {}
+
+		public virtual void OnHotKeyHold() {}
+
 		public virtual void OnValueChanged(string varName) {}
 	}
 }
