@@ -30,6 +30,8 @@ namespace MobileConsole
 				}
 			}
 
+			AppendHotKeyDisplay(info, CommandHotKeyDisplay.Format(attribute));
+
 			info.description = attribute.description;
 			info.order = attribute.order;
 			info.isFavorite = attribute.isFavorite;
@@ -56,6 +58,26 @@ namespace MobileConsole
 
 			info.description = attribute.description;
 			info.order = attribute.order;
+		}
+
+		static void AppendHotKeyDisplay(CommandInfo info, string hotKeyDisplay)
+		{
+			if (string.IsNullOrEmpty(hotKeyDisplay))
+				return;
+
+			info.name = AppendDisplaySuffix(info.name, hotKeyDisplay);
+			if (!string.IsNullOrEmpty(info.fullPath))
+			{
+				info.fullPath = AppendDisplaySuffix(info.fullPath, hotKeyDisplay);
+			}
+		}
+
+		static string AppendDisplaySuffix(string value, string suffix)
+		{
+			if (string.IsNullOrEmpty(value))
+				return value;
+
+			return string.Format("{0} <size=80%>({1})</size>", value, suffix);
 		}
 	}
 }

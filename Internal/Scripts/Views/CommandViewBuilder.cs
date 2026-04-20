@@ -80,7 +80,8 @@ namespace MobileConsole.UI
 			CategoryNodeView recentCategory = CreateCategory(RecentCategoryName);
 			foreach (var recentCommand in RecentCommandsHistory.ResolveCommands(_commands))
 			{
-				GenericNodeView node = AddButton(recentCommand.info.fullPath, "command", OnCommandSelected, recentCategory);
+				string commandName = string.IsNullOrEmpty(recentCommand.info.fullPath) ? recentCommand.info.name : recentCommand.info.fullPath;
+				GenericNodeView node = AddButton(commandName, "command", OnCommandSelected, recentCategory);
 				node.data = recentCommand;
 			}
 
@@ -102,7 +103,6 @@ namespace MobileConsole.UI
 
 			SortTree();
 		}
-
 		void ApplySpecialCategoryCommandColors(string categoryName)
 		{
 			Node categoryNode = _rootNode.FindChildByName(categoryName);
