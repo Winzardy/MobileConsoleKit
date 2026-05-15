@@ -64,7 +64,7 @@ namespace MobileConsole
 			// Android intent limit size is 1MB (https://stackoverflow.com/questions/39098590)
 			// Thus we save it as a file then share the file instead
 			string fileName = string.Format("{0}_{1}({2})_{3}.log",
-				Application.productName,
+				SanitizeFileName(Application.productName),
 				Application.version,
 				EventBridge.AppVersionCode,
 				DateTime.Now.ToString("MMMM-dd_HH-mm-ss-ff"));
@@ -85,6 +85,20 @@ namespace MobileConsole
 #if UNITY_EDITOR
 			Debug.LogFormat("Logs are saved at: {0}\n You can quickly open the log folder by <b>Tools > Mobile Console > Open Log Folder </b>", filePath);
 #endif
+		}
+
+		static string SanitizeFileName(string fileName)
+		{
+			if (string.IsNullOrEmpty(fileName))
+				return "Application";
+
+			foreach (char invalidFileNameChar in Path.GetInvalidFileNameChars())
+				fileName = fileName.Replace(invalidFileNameChar, '_');
+			foreach (char invalidFileNameChar in "<>:\"/\\|?*")
+				fileName = fileName.Replace(invalidFileNameChar, '_');
+
+			string sanitizedFileNameString = fileName.Trim(' ', '.');
+			return string.IsNullOrEmpty(sanitizedFileNameString) ? "Application" : sanitizedFileNameString;
 		}
 
         static void ShareFiles(string[] filePaths)
