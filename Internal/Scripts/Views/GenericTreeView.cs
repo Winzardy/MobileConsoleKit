@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -35,6 +36,7 @@ namespace MobileConsole.UI
 
 		List<Node> _filterNodes = new List<Node>();
 		ViewBuilder _viewBuilder;
+		ActionButtonFeedbackAnimator _actionButtonFeedbackAnimator;
 		protected string _filterString;
 		bool _isInitialized = false;
 		bool _isPreparingView = false;
@@ -67,6 +69,8 @@ namespace MobileConsole.UI
 
 		void ClearOldBuilder()
 		{
+			_actionButtonFeedbackAnimator?.Stop();
+
 			if (_viewBuilder != null)
 			{
 				_viewBuilder.OnRequireUpdateUI = null;
@@ -102,14 +106,31 @@ namespace MobileConsole.UI
 
 			// Update buttons
 			_backButton.SetActive(true);
-			_actionButton.SetActive(_viewBuilder.actionButtonCallback != null);
-			AssetConfig.SpriteInfo spriteInfo = _config.GetSpriteInfo(_viewBuilder.actionButtonIcon);
-			if (spriteInfo != null)
+			bool hasActionButton = _viewBuilder.actionButtonCallback != null;
+			_actionButton.SetActive(hasActionButton);
+			if (_actionButtonFeedbackAnimator == null)
 			{
-				UnityEngine.UI.Image buttonImage = _actionButton.GetComponentInChildren<UnityEngine.UI.Image>();
-				buttonImage.sprite = spriteInfo.sprite;
-				buttonImage.color = spriteInfo.color;
+				_actionButtonFeedbackAnimator = new ActionButtonFeedbackAnimator(this);
 			}
+
+			Image actionButtonImage = null;
+			Color actionButtonColor = Color.white;
+			AssetConfig.SpriteInfo spriteInfo = _config.GetSpriteInfo(_viewBuilder.actionButtonIcon);
+			if (hasActionButton)
+			{
+				actionButtonImage = GetActionButtonImage();
+				if (actionButtonImage != null)
+				{
+					if (spriteInfo != null)
+					{
+						actionButtonImage.sprite = spriteInfo.sprite;
+						actionButtonImage.color = spriteInfo.color;
+					}
+
+					actionButtonColor = actionButtonImage.color;
+				}
+			}
+			_actionButtonFeedbackAnimator.Setup(actionButtonImage, actionButtonColor);
 
 			// Rebuild the whole tree
             _viewBuilder.Rebuild();
@@ -219,12 +240,26 @@ namespace MobileConsole.UI
 				{
 					_viewBuilder.actionButtonCallback();
 					_viewBuilder.actionAfterExecuted.Process();
+					_actionButtonFeedbackAnimator?.Play();
 				}
 				catch (Exception e)
 				{
 					Debug.LogException(e);
 				}
 			}
+		}
+
+		Image GetActionButtonImage()
+		{
+			if (_actionButton == null)
+			{
+				return null;
+			}
+
+			Button button = _actionButton.GetComponent<Button>();
+			return button != null && button.targetGraphic is Image targetImage
+				? targetImage
+				: _actionButton.GetComponentInChildren<Image>();
 		}
 
 		public void OnExpandAll()
@@ -286,6 +321,81 @@ namespace MobileConsole.UI
 		public int ScrollCellCount()
 		{
 			return _filterNodes.Count;
+		}
+	}
+
+	class ActionButtonFeedbackAnimator
+	{
+		static readonly Color FeedbackColor = new Color(0.2f, 0.9f, 0.35f, 1f);
+		const float FadeInDuration = 0.15f;
+		const float HoldDuration = 0.2f;
+		const float FadeOutDuration = 0.15f;
+
+		readonly GenericTreeView _owner;
+		Image _image;
+		Color _normalColor = Color.white;
+		Coroutine _routine;
+
+		public ActionButtonFeedbackAnimator(GenericTreeView owner)
+		{
+			_owner = owner;
+		}
+
+		public void Setup(Image image, Color normalColor)
+		{
+			Stop();
+			_image = image;
+			_normalColor = normalColor;
+		}
+
+		public void Play()
+		{
+			Stop();
+
+			if (_image == null || !_owner.isActiveAndEnabled || !_image.gameObject.activeInHierarchy)
+			{
+				return;
+			}
+
+			_routine = _owner.StartCoroutine(Animate());
+		}
+
+		public void Stop()
+		{
+			if (_routine != null)
+			{
+				_owner.StopCoroutine(_routine);
+				_routine = null;
+			}
+
+			if (_image != null)
+			{
+				_image.color = _normalColor;
+			}
+		}
+
+		IEnumerator Animate()
+		{
+			yield return LerpColor(_normalColor, FeedbackColor, FadeInDuration);
+			yield return new WaitForSecondsRealtime(HoldDuration);
+			yield return LerpColor(FeedbackColor, _normalColor, FadeOutDuration);
+
+			_image.color = _normalColor;
+			_routine = null;
+		}
+
+		IEnumerator LerpColor(Color from, Color to, float duration)
+		{
+			float elapsed = 0f;
+			while (elapsed < duration)
+			{
+				elapsed += Time.unscaledDeltaTime;
+				float t = Mathf.Clamp01(elapsed / duration);
+				_image.color = Color.Lerp(from, to, t);
+				yield return null;
+			}
+
+			_image.color = to;
 		}
 	}
 }
