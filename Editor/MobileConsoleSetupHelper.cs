@@ -12,6 +12,8 @@ namespace MobileConsole.Editor
 	{
 		const string ToolVersion = "2.1.7";
 		const string DebugLogDefineSymbol = "DebugLog";
+		const string SettingsResourceName = "LogConsoleSettings";
+		const string SettingsAssetPath = "Assets/Resources/LogConsoleSettings.asset";
 
 		[DidReloadScripts]
 		static void OnScriptReloaded()
@@ -25,14 +27,7 @@ namespace MobileConsole.Editor
 			// Try to create settings in the next update, after the AssetDatabese import is completed
 			EditorApplication.delayCall += () =>
 			{
-				var setting = Resources.Load<LogConsoleSettings>("LogConsoleSettings");
-				if (setting == null)
-				{
-					setting = ScriptableObject.CreateInstance<LogConsoleSettings>();
-
-					Directory.CreateDirectory("Assets/Resources");
-					AssetDatabase.CreateAsset(setting, "Assets/Resources/LogConsoleSettings.asset");
-				}
+				EnsureSettingsAsset();
 			};
 		}
 
@@ -60,6 +55,16 @@ namespace MobileConsole.Editor
 			RemoveDebugLogDefineSymbolForGroup(BuildTargetGroup.Standalone);
 			RemoveLogConsoleFromBuildSettings();
 			Debug.Log("Disable Mobile Console Completed");
+		}
+
+		[MenuItem("Tools/Mobile Console/Open Settings", false, 11)]
+		public static void OpenSettings()
+		{
+			LogConsoleSettings setting = EnsureSettingsAsset();
+			EditorUtility.FocusProjectWindow();
+			Selection.activeObject = setting;
+			EditorGUIUtility.PingObject(setting);
+			AssetDatabase.OpenAsset(setting);
 		}
 
 		[MenuItem("Tools/Mobile Console/Open Log Folder", false, 21)]
@@ -170,6 +175,28 @@ namespace MobileConsole.Editor
 			}
 
 			return null;
+		}
+
+		static LogConsoleSettings EnsureSettingsAsset()
+		{
+			LogConsoleSettings setting = Resources.Load<LogConsoleSettings>(SettingsResourceName);
+			if (setting != null)
+			{
+				return setting;
+			}
+
+			setting = AssetDatabase.LoadAssetAtPath<LogConsoleSettings>(SettingsAssetPath);
+			if (setting != null)
+			{
+				return setting;
+			}
+
+			setting = ScriptableObject.CreateInstance<LogConsoleSettings>();
+			Directory.CreateDirectory(Path.GetDirectoryName(SettingsAssetPath));
+			AssetDatabase.CreateAsset(setting, SettingsAssetPath);
+			SaveAssets();
+
+			return setting;
 		}
 	}
 }
