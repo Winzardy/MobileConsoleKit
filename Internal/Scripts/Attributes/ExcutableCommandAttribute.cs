@@ -27,7 +27,6 @@ namespace MobileConsole
         public string name;
         public string description;
         public int order = 0;
-        public bool isFavorite = false;
         public KeyCode hotKey = KeyCode.None;
         public HotKeyModifier hotKeyModifier = HotKeyModifier.None;
         public HotKeyTrigger hotKeyTrigger = HotKeyTrigger.Down;

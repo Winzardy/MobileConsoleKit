@@ -34,7 +34,6 @@ namespace MobileConsole
 
 			info.description = attribute.description;
 			info.order = attribute.order;
-			info.isFavorite = attribute.isFavorite;
 		}
 
 		public static void CopyData(this CommandInfo info, SettingCommandAttribute attribute, Type type)

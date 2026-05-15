@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -33,6 +32,9 @@ namespace MobileConsole
 
 		[EnumFlags]
 		public RegexOptions regexSearchOptions = RegexOptions.IgnoreCase;
+
+		[Header("Favorites")]
+		public string[] favoriteCommandNames;
 
 		[Header("Share Log - Window and Mac")]
 		public bool useShareLogViaMail = true;
@@ -114,6 +116,32 @@ namespace MobileConsole
 		public static float GetTreeViewOffsetByLevel(int level)
 		{
 			return Instance._treeViewOffset * level;
+		}
+
+		public bool IsFavoriteCommandName(string commandName)
+		{
+			if (favoriteCommandNames == null)
+				return false;
+
+			string normalizedCommandName = NormalizeCommandName(commandName);
+			if (string.IsNullOrEmpty(normalizedCommandName))
+				return false;
+
+			for (int i = 0; i < favoriteCommandNames.Length; i++)
+			{
+				if (NormalizeCommandName(favoriteCommandNames[i]) == normalizedCommandName)
+					return true;
+			}
+
+			return false;
+		}
+
+		static string NormalizeCommandName(string commandName)
+		{
+			if (string.IsNullOrEmpty(commandName))
+				return string.Empty;
+
+			return commandName.Trim().Trim('/');
 		}
 
 		static LogConsoleSettings _instance;

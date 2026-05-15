@@ -135,6 +135,7 @@ namespace MobileConsole
 					bool addEllipsis = LogConsoleSettings.Instance.useEllipsisForComplexCommands &&
 					                   command.info.IsComplex();
 					command.info.CopyData(attribute, commandType, addEllipsis);
+					command.info.isFavorite = LogConsoleSettings.Instance.IsFavoriteCommandName(attribute.name);
 
 					try
 					{
