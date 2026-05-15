@@ -35,6 +35,19 @@ namespace MobileConsole
 			if (attribute.hotKeyTrigger == HotKeyTrigger.None)
 				return;
 
+			HotKeyCommandBinding duplicateBinding = _hotKeyCommands.Find(binding =>
+				binding.hotKey == attribute.hotKey &&
+				binding.hotKeyModifier == attribute.hotKeyModifier);
+			if (duplicateBinding != null)
+			{
+				Debug.LogErrorFormat(
+					"Hot key '{0}' for command '{1}' is already used by command '{2}'.",
+					CommandHotKeyDisplay.Format(attribute),
+					command.info.fullPath,
+					duplicateBinding.command.info.fullPath);
+				return;
+			}
+
 			_hotKeyCommands.Add(new HotKeyCommandBinding()
 			{
 				command = command,
