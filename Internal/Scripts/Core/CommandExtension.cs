@@ -27,6 +27,12 @@ namespace MobileConsole
 
 		static bool IsFiedTypeSupported(this Type type)
 		{
+			Type nullableType = Nullable.GetUnderlyingType(type);
+			if (nullableType != null)
+			{
+				return nullableType == typeof(bool) || nullableType.IsEnum;
+			}
+
 			return type.IsEnum || Array.IndexOf(_supportedFieldTypes, type) >= 0;
 		}
 
@@ -87,24 +93,32 @@ namespace MobileConsole
 				if (PlayerPrefs.HasKey(savedKey))
 				{
 					string value = PlayerPrefs.GetString(savedKey);
-					if (variableInfo.fieldInfo.FieldType.IsEnum)
+					Type fieldType = variableInfo.fieldInfo.FieldType;
+					Type nullableType = Nullable.GetUnderlyingType(fieldType);
+					Type valueType = nullableType ?? fieldType;
+
+					if (nullableType != null && string.IsNullOrEmpty(value))
+					{
+						variableInfo.fieldInfo.SetValue(command, null);
+					}
+					else if (valueType.IsEnum)
 					{
 						// In case the enum value was changed and not exist anymore, an exception will be thrown. We reset the value to 0
-						try 
+						try
 						{
-							variableInfo.fieldInfo.SetValue(command, Enum.Parse(variableInfo.fieldInfo.FieldType, value));
+							variableInfo.fieldInfo.SetValue(command, Enum.Parse(valueType, value));
 						}
 						catch
 						{
 							Debug.LogWarningFormat("The enum value [{0}] is not exist anymore, set it to default (0)", value);
-							variableInfo.fieldInfo.SetValue(command, 0);
+							variableInfo.fieldInfo.SetValue(command, Enum.ToObject(valueType, 0));
 						}
 					}
 					else
 					{
 						try
 						{
-							variableInfo.fieldInfo.SetValue(command, Convert.ChangeType(value, variableInfo.fieldInfo.FieldType));
+							variableInfo.fieldInfo.SetValue(command, Convert.ChangeType(value, valueType));
 						}
 						catch {}
 					}
@@ -136,7 +150,8 @@ namespace MobileConsole
 		public static void SaveVariabledInfo(this Command command, VariableInfo variableInfo)
 		{
 			string savedKey = command.GetKey(variableInfo);
-			string value = (string)Convert.ChangeType(variableInfo.fieldInfo.GetValue(command), typeof(string));
+			object fieldValue = variableInfo.fieldInfo.GetValue(command);
+			string value = fieldValue != null ? (string)Convert.ChangeType(fieldValue, typeof(string)) : string.Empty;
 			PlayerPrefs.SetString(savedKey, value);
 		}
 

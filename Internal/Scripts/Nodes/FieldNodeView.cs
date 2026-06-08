@@ -77,6 +77,9 @@ namespace MobileConsole.UI
 
 		void ParseCellIdentifier()
 		{
+			Type fieldType = _variableInfo.fieldInfo.FieldType;
+			Type nullableType = Nullable.GetUnderlyingType(fieldType);
+
 			if (_variableInfo.fieldInfo.IsNumericType())
 			{
 				if (_variableInfo.fieldInfo.HasAttribute<RangeAttribute>())
@@ -86,18 +89,22 @@ namespace MobileConsole.UI
 				else
 					_cellIdentifier = ID_INPUT_CELL;
 			}
-			else if (_variableInfo.fieldInfo.FieldType == typeof(string))
+			else if (fieldType == typeof(string))
 			{
 				if (_variableInfo.fieldInfo.HasAttribute<DropdownAttribute>())
 					_cellIdentifier = ID_DROPDOWN_CELL;
 				else
 					_cellIdentifier = ID_INPUT_CELL;
 			}
-			else if (_variableInfo.fieldInfo.FieldType.IsEnum)
+			else if (fieldType.IsEnum || (nullableType != null && nullableType.IsEnum))
 			{
 				_cellIdentifier = ID_DROPDOWN_CELL;
 			}
-			else if (_variableInfo.fieldInfo.FieldType == typeof(bool))
+			else if (nullableType == typeof(bool))
+			{
+				_cellIdentifier = ID_DROPDOWN_CELL;
+			}
+			else if (fieldType == typeof(bool))
 			{
 				_cellIdentifier = ID_CHECKBOX_CELL;
 			}
@@ -198,10 +205,12 @@ namespace MobileConsole.UI
 	public class DropdownCellControl : BaseCellControl
 	{
 		const string EMPTY_OPTIONS_PLACEHOLDER = "--no-elements--";
+		const string NULL_OPTION_PLACEHOLDER = "not selected";
 
 		static IDropdownField[] _presetDropdownFields = new IDropdownField[]
 		{
 			new EnumDropdownField(),
+			new NullableBoolDropdownField(),
 			new StringDropdownField(),
 			new NumericDropdownField()
 		};
@@ -293,28 +302,84 @@ namespace MobileConsole.UI
 		{
 			public override bool TryParse(Command command, VariableInfo variableInfo, out string[] options)
 			{
-				if (!variableInfo.fieldInfo.FieldType.IsEnum)
+				Type fieldType = variableInfo.fieldInfo.FieldType;
+				Type nullableType = Nullable.GetUnderlyingType(fieldType);
+				Type enumType = nullableType ?? fieldType;
+
+				if (!enumType.IsEnum)
 				{
 					options = null;
 					return false;
 				}
 
-				options = Enum.GetNames(variableInfo.fieldInfo.FieldType);
+				options = Enum.GetNames(enumType);
+				if (nullableType != null)
+				{
+					Array.Resize(ref options, options.Length + 1);
+					Array.Copy(options, 0, options, 1, options.Length - 1);
+					options[0] = NULL_OPTION_PLACEHOLDER;
+				}
 
 				return true;
 			}
 
 			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, string[] options)
 			{
+				Type nullableType = Nullable.GetUnderlyingType(variableInfo.fieldInfo.FieldType);
 				object enumValue = variableInfo.fieldInfo.GetValue(command);
-				string enumName = Enum.GetName(variableInfo.fieldInfo.FieldType, enumValue);
+				if (nullableType != null && enumValue == null)
+				{
+					return 0;
+				}
+
+				Type enumType = nullableType ?? variableInfo.fieldInfo.FieldType;
+				string enumName = Enum.GetName(enumType, enumValue);
 				return Array.IndexOf(options, enumName);
 			}
 
 			public override void OnValueChanged(Command command, VariableInfo variableInfo, string[] options, int index)
 			{
-				object enumValue = Enum.Parse(variableInfo.fieldInfo.FieldType, options[index]);
+				Type nullableType = Nullable.GetUnderlyingType(variableInfo.fieldInfo.FieldType);
+				if (nullableType != null && index == 0)
+				{
+					variableInfo.fieldInfo.SetValue(command, null);
+					return;
+				}
+
+				Type enumType = nullableType ?? variableInfo.fieldInfo.FieldType;
+				object enumValue = Enum.Parse(enumType, options[index]);
 				variableInfo.fieldInfo.SetValue(command, enumValue);
+			}
+		}
+
+		class NullableBoolDropdownField : IDropdownField
+		{
+			public override bool TryParse(Command command, VariableInfo variableInfo, out string[] options)
+			{
+				if (Nullable.GetUnderlyingType(variableInfo.fieldInfo.FieldType) != typeof(bool))
+				{
+					options = null;
+					return false;
+				}
+
+				options = new[] { NULL_OPTION_PLACEHOLDER, "True", "False" };
+				return true;
+			}
+
+			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, string[] options)
+			{
+				object value = variableInfo.fieldInfo.GetValue(command);
+				if (value == null)
+				{
+					return 0;
+				}
+
+				return (bool)value ? 1 : 2;
+			}
+
+			public override void OnValueChanged(Command command, VariableInfo variableInfo, string[] options, int index)
+			{
+				variableInfo.fieldInfo.SetValue(command, index == 0 ? null : (object)(index == 1));
 			}
 		}
 
