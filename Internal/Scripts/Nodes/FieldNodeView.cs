@@ -217,7 +217,7 @@ namespace MobileConsole.UI
 
 		BaseDropdownCell _dropdownCell;
 		IDropdownField _dropdownField;
-		string[] _options;
+		DropdownOption[] _options;
 		bool _isNoElementsState;
 
 		public override void UpdateData(ScrollViewCell cell)
@@ -239,7 +239,7 @@ namespace MobileConsole.UI
 			if (_dropdownField == null || _options == null || _options.Length == 0)
 			{
 				_isNoElementsState = true;
-				_options = new[] { EMPTY_OPTIONS_PLACEHOLDER };
+				_options = DropdownOption.FromNames(new[] { EMPTY_OPTIONS_PLACEHOLDER });
 				_dropdownCell.SetOptions(_options);
 				_dropdownCell.SetIndex(0);
 				_dropdownCell.SetInteractable(false);
@@ -293,14 +293,14 @@ namespace MobileConsole.UI
 		#region Dropdown Field
 		abstract class IDropdownField
 		{
-			public abstract bool TryParse(Command command, VariableInfo variableInfo, out string[] options);
-			public abstract int GetDropdownIndex(Command command, VariableInfo variableInfo, string[] options);
-			public abstract void OnValueChanged(Command command, VariableInfo variableInfo, string[] options, int index);
+			public abstract bool TryParse(Command command, VariableInfo variableInfo, out DropdownOption[] options);
+			public abstract int GetDropdownIndex(Command command, VariableInfo variableInfo, DropdownOption[] options);
+			public abstract void OnValueChanged(Command command, VariableInfo variableInfo, DropdownOption[] options, int index);
 		}
 
 		class EnumDropdownField : IDropdownField
 		{
-			public override bool TryParse(Command command, VariableInfo variableInfo, out string[] options)
+			public override bool TryParse(Command command, VariableInfo variableInfo, out DropdownOption[] options)
 			{
 				Type fieldType = variableInfo.fieldInfo.FieldType;
 				Type nullableType = Nullable.GetUnderlyingType(fieldType);
@@ -312,18 +312,19 @@ namespace MobileConsole.UI
 					return false;
 				}
 
-				options = Enum.GetNames(enumType);
+				string[] optionNames = Enum.GetNames(enumType);
 				if (nullableType != null)
 				{
-					Array.Resize(ref options, options.Length + 1);
-					Array.Copy(options, 0, options, 1, options.Length - 1);
-					options[0] = NULL_OPTION_PLACEHOLDER;
+					Array.Resize(ref optionNames, optionNames.Length + 1);
+					Array.Copy(optionNames, 0, optionNames, 1, optionNames.Length - 1);
+					optionNames[0] = NULL_OPTION_PLACEHOLDER;
 				}
 
+				options = DropdownOption.FromNames(optionNames);
 				return true;
 			}
 
-			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, string[] options)
+			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, DropdownOption[] options)
 			{
 				Type nullableType = Nullable.GetUnderlyingType(variableInfo.fieldInfo.FieldType);
 				object enumValue = variableInfo.fieldInfo.GetValue(command);
@@ -334,10 +335,10 @@ namespace MobileConsole.UI
 
 				Type enumType = nullableType ?? variableInfo.fieldInfo.FieldType;
 				string enumName = Enum.GetName(enumType, enumValue);
-				return Array.IndexOf(options, enumName);
+				return IndexOfOptionName(options, enumName);
 			}
 
-			public override void OnValueChanged(Command command, VariableInfo variableInfo, string[] options, int index)
+			public override void OnValueChanged(Command command, VariableInfo variableInfo, DropdownOption[] options, int index)
 			{
 				Type nullableType = Nullable.GetUnderlyingType(variableInfo.fieldInfo.FieldType);
 				if (nullableType != null && index == 0)
@@ -347,14 +348,14 @@ namespace MobileConsole.UI
 				}
 
 				Type enumType = nullableType ?? variableInfo.fieldInfo.FieldType;
-				object enumValue = Enum.Parse(enumType, options[index]);
+				object enumValue = Enum.Parse(enumType, GetOptionName(options, index));
 				variableInfo.fieldInfo.SetValue(command, enumValue);
 			}
 		}
 
 		class NullableBoolDropdownField : IDropdownField
 		{
-			public override bool TryParse(Command command, VariableInfo variableInfo, out string[] options)
+			public override bool TryParse(Command command, VariableInfo variableInfo, out DropdownOption[] options)
 			{
 				if (Nullable.GetUnderlyingType(variableInfo.fieldInfo.FieldType) != typeof(bool))
 				{
@@ -362,11 +363,11 @@ namespace MobileConsole.UI
 					return false;
 				}
 
-				options = new[] { NULL_OPTION_PLACEHOLDER, "True", "False" };
+				options = DropdownOption.FromNames(new[] { NULL_OPTION_PLACEHOLDER, "True", "False" });
 				return true;
 			}
 
-			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, string[] options)
+			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, DropdownOption[] options)
 			{
 				object value = variableInfo.fieldInfo.GetValue(command);
 				if (value == null)
@@ -377,7 +378,7 @@ namespace MobileConsole.UI
 				return (bool)value ? 1 : 2;
 			}
 
-			public override void OnValueChanged(Command command, VariableInfo variableInfo, string[] options, int index)
+			public override void OnValueChanged(Command command, VariableInfo variableInfo, DropdownOption[] options, int index)
 			{
 				variableInfo.fieldInfo.SetValue(command, index == 0 ? null : (object)(index == 1));
 			}
@@ -385,7 +386,7 @@ namespace MobileConsole.UI
 
 		class StringDropdownField : IDropdownField
 		{
-			public override bool TryParse(Command command, VariableInfo variableInfo, out string[] options)
+			public override bool TryParse(Command command, VariableInfo variableInfo, out DropdownOption[] options)
 			{
 				if (variableInfo.fieldInfo.FieldType != typeof(string))
 				{
@@ -408,31 +409,31 @@ namespace MobileConsole.UI
 
 				try
 				{
-					options = (string[])methodInfo.Invoke(command, null);
+					options = ParseStringDropdownOptions(methodInfo.Invoke(command, null), dropdownAttr.methodName);
 				}
-				catch
+				catch (Exception ex)
 				{
-					throw new Exception("Could not retrieve options from method name: " + dropdownAttr.methodName);
+					throw new Exception("Could not retrieve options from method name: " + dropdownAttr.methodName, ex);
 				}
 
 				return true;
 			}
 
-			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, string[] options)
+			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, DropdownOption[] options)
 			{
 				string strValue = (string)variableInfo.fieldInfo.GetValue(command);
-				return Array.IndexOf(options, strValue);
+				return IndexOfOptionName(options, strValue);
 			}
 
-			public override void OnValueChanged(Command command, VariableInfo variableInfo, string[] options, int index)
+			public override void OnValueChanged(Command command, VariableInfo variableInfo, DropdownOption[] options, int index)
 			{
-				variableInfo.fieldInfo.SetValue(command, options[index]);
+				variableInfo.fieldInfo.SetValue(command, GetOptionName(options, index));
 			}
 		}
 
 		class NumericDropdownField : IDropdownField
 		{
-			public override bool TryParse(Command command, VariableInfo variableInfo, out string[] options)
+			public override bool TryParse(Command command, VariableInfo variableInfo, out DropdownOption[] options)
 			{
 				if (!variableInfo.fieldInfo.FieldType.IsNumericType())
 				{
@@ -453,41 +454,104 @@ namespace MobileConsole.UI
 					throw new Exception("Could not found method name: " + dropdownAttr.methodName);
 				}
 
-				Array fieldOptions;
+				object rawOptions;
 				try
 				{
-					fieldOptions = (Array)methodInfo.Invoke(command, null);
+					rawOptions = methodInfo.Invoke(command, null);
 				}
 				catch
 				{
 					throw new Exception("Could not retrieve options from method name: " + dropdownAttr.methodName);
 				}
 
-				if (fieldOptions == null)
+				if (rawOptions == null)
 				{
 					options = null;
 					return true;
 				}
 
-				options = new string[fieldOptions.Length];
+				DropdownOption[] dropdownOptions = rawOptions as DropdownOption[];
+				if (dropdownOptions != null)
+				{
+					options = dropdownOptions;
+					return true;
+				}
+
+				Array fieldOptions = rawOptions as Array;
+				if (fieldOptions == null)
+				{
+					throw new Exception("Could not retrieve options from method name: " + dropdownAttr.methodName);
+				}
+
+				options = new DropdownOption[fieldOptions.Length];
 				for (int i = 0; i < fieldOptions.Length; i++)
 				{
 					object option = fieldOptions.GetValue(i);
-					options[i] = option != null ? option.ToString() : string.Empty;
+					options[i] = new DropdownOption(option != null ? option.ToString() : string.Empty);
 				}
 
 				return true;
 			}
 
-			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, string[] options)
+			public override int GetDropdownIndex(Command command, VariableInfo variableInfo, DropdownOption[] options)
 			{
-				return Array.IndexOf(options, variableInfo.fieldInfo.GetValue(command).ToString());
+				return IndexOfOptionName(options, variableInfo.fieldInfo.GetValue(command).ToString());
 			}
 
-			public override void OnValueChanged(Command command, VariableInfo variableInfo, string[] options, int index)
+			public override void OnValueChanged(Command command, VariableInfo variableInfo, DropdownOption[] options, int index)
 			{
-				variableInfo.fieldInfo.SetValue(command, Convert.ChangeType(options[index], variableInfo.fieldInfo.FieldType));
+				variableInfo.fieldInfo.SetValue(command, Convert.ChangeType(GetOptionName(options, index), variableInfo.fieldInfo.FieldType));
 			}
+		}
+
+		static DropdownOption[] ParseStringDropdownOptions(object rawOptions, string methodName)
+		{
+			if (rawOptions == null)
+			{
+				return null;
+			}
+
+			string[] stringOptions = rawOptions as string[];
+			if (stringOptions != null)
+			{
+				return DropdownOption.FromNames(stringOptions);
+			}
+
+			DropdownOption[] dropdownOptions = rawOptions as DropdownOption[];
+			if (dropdownOptions != null)
+			{
+				return dropdownOptions;
+			}
+
+			throw new Exception("Could not retrieve options from method name: " + methodName);
+		}
+
+		static int IndexOfOptionName(DropdownOption[] options, string name)
+		{
+			if (options == null)
+			{
+				return -1;
+			}
+
+			for (int i = 0; i < options.Length; i++)
+			{
+				if (GetOptionName(options, i) == name)
+				{
+					return i;
+				}
+			}
+
+			return -1;
+		}
+
+		static string GetOptionName(DropdownOption[] options, int index)
+		{
+			if (options == null || index < 0 || index >= options.Length || options[index] == null)
+			{
+				return string.Empty;
+			}
+
+			return options[index].name;
 		}
 		#endregion
 	}

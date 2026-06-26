@@ -35,7 +35,7 @@ namespace MobileConsole.UI
 		bool _filterEnabled;
 		bool _hasVisibleOptions;
 		string _filterQuery = string.Empty;
-		string[] _options = Array.Empty<string>();
+		DropdownOption[] _options = Array.Empty<DropdownOption>();
 		int _selectedOriginalIndex = -1;
 		readonly List<int> _visibleOptionIndexes = new List<int>();
 
@@ -76,7 +76,12 @@ namespace MobileConsole.UI
 
 		public override void SetOptions(string[] options)
 		{
-			_options = options ?? Array.Empty<string>();
+			SetOptions(DropdownOption.FromNames(options));
+		}
+
+		public override void SetOptions(DropdownOption[] options)
+		{
+			_options = options ?? Array.Empty<DropdownOption>();
 			ApplyFilter(_filterQuery, false);
 		}
 
@@ -129,7 +134,7 @@ namespace MobileConsole.UI
 
 			for (int i = 0; i < _options.Length; i++)
 			{
-				string option = _options[i] ?? string.Empty;
+				string option = GetOptionName(_options[i]);
 				if (IsMatch(option, terms))
 				{
 					_visibleOptionIndexes.Add(i);
@@ -161,7 +166,10 @@ namespace MobileConsole.UI
 				for (int i = 0; i < _visibleOptionIndexes.Count; i++)
 				{
 					int optionIndex = _visibleOptionIndexes[i];
-					_dropdown.options.Add(new TMP_Dropdown.OptionData(_options[optionIndex]));
+					DropdownOption option = _options[optionIndex];
+					TMP_Dropdown.OptionData optionData = new TMP_Dropdown.OptionData(GetOptionName(option));
+					optionData.image = GetOptionImage(option);
+					_dropdown.options.Add(optionData);
 				}
 			}
 
@@ -271,6 +279,16 @@ namespace MobileConsole.UI
 			}
 
 			return true;
+		}
+
+		static string GetOptionName(DropdownOption option)
+		{
+			return option != null && option.name != null ? option.name : string.Empty;
+		}
+
+		static Sprite GetOptionImage(DropdownOption option)
+		{
+			return option != null ? option.image : null;
 		}
 	}
 }

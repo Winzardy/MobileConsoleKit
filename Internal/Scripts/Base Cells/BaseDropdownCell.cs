@@ -6,6 +6,11 @@
 		public Callback OnValueChanged;
 
 		public abstract void SetOptions(string[] options);
+
+		public virtual void SetOptions(DropdownOption[] options)
+		{
+			SetOptions(DropdownOption.GetNames(options));
+		}
 		public abstract void SetIndex(int index);
 		public abstract void SetInteractable(bool interactable);
 		public abstract void SetFilterEnabled(bool enabled);

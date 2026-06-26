@@ -4,7 +4,7 @@
 	{
 		public delegate void Callback(DropdownNodeView node, int index);
 		public Callback callback;
-		public string[] options;
+		public DropdownOption[] options;
 		public int index;
 
 		public override ScrollViewCell CreateCell(RecycleScrollView scrollView, AssetConfig config, int cellIndex)

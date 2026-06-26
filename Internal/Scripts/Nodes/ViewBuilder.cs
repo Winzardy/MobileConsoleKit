@@ -249,6 +249,16 @@ namespace MobileConsole.UI
 
 		protected DropdownNodeView AddDropdown(string name, int index, string[] options, DropdownNodeView.Callback callback, string id, Node parentNode)
 		{
+			return AddDropdown(name, index, DropdownOption.FromNames(options), callback, id, parentNode);
+		}
+
+		protected DropdownNodeView AddDropdown(string name, int index, DropdownOption[] options, DropdownNodeView.Callback callback, Node parentNode)
+		{
+			return AddDropdown(name, index, options, callback, string.Empty, parentNode);
+		}
+
+		protected DropdownNodeView AddDropdown(string name, int index, DropdownOption[] options, DropdownNodeView.Callback callback, string id, Node parentNode)
+		{
 			if (parentNode == null)
 				parentNode = _rootNode;
 
