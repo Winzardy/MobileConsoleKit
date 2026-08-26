@@ -43,10 +43,6 @@ namespace MobileConsole.UI
 
 		StringBuilder _cachedText = new StringBuilder(200);
 
-		int _numLogInfo;
-		int _numLogWarning;
-		int _numLogError;
-
 		int _mainThreadId;
 		List<LogInfo> _threadedLogInfos;
 
@@ -95,8 +91,6 @@ namespace MobileConsole.UI
 				{
 					_filterLogInfos.Add(logInfo);
 				}
-				
-				IncreaseLogNumber(logInfo);
 			}
 
 			_scrollView.ReloadData();
@@ -145,7 +139,6 @@ namespace MobileConsole.UI
 				UpdateActiveCell(result.collapsedLogInfo.hash);
 			}
 
-			IncreaseLogNumber(logInfo);
 			UpdateLogTexts();
 		}
 
@@ -208,7 +201,6 @@ namespace MobileConsole.UI
 		{
 			LogReceiver.Clear();
 
-			ResetLogNumber();
 			UpdateLogTexts();
 			UpdateFilteredLog();
 
@@ -258,34 +250,11 @@ namespace MobileConsole.UI
 			}
 		}
 
-		void IncreaseLogNumber(LogInfo logInfo)
-		{
-			if (logInfo.type == LogType.Log)
-			{
-				_numLogInfo += 1;
-			}
-			else if (logInfo.type == LogType.Warning)
-			{
-				_numLogWarning += 1;
-			}
-			else if (logInfo.type == LogType.Error)
-			{
-				_numLogError += 1;
-			}
-		}
-
-		void ResetLogNumber()
-		{
-			_numLogInfo = 0;
-			_numLogWarning = 0;
-			_numLogError = 0;
-		}
-
 		void UpdateLogTexts()
 		{
-			_logToggleInfo.text = _numLogInfo > 999 ? "999+" : _numLogInfo.ToString();
-			_logToggleWarning.text = _numLogWarning > 999 ? "999+" : _numLogWarning.ToString();
-			_logToggleError.text = _numLogError > 999 ? "999+" : _numLogError.ToString();
+			_logToggleInfo.text = LogReceiver.FormatCount(LogReceiver.NumLogInfo);
+			_logToggleWarning.text = LogReceiver.FormatCount(LogReceiver.NumLogWarning);
+			_logToggleError.text = LogReceiver.FormatCount(LogReceiver.NumLogError);
 		}
 
 		void UpdateActiveCell(int hash)

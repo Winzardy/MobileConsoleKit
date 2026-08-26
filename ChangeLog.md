@@ -1,3 +1,8 @@
+# v2.1.8 by Winzardy
+## Improvements
+- Error/warning counter badge in the bottom right corner, configurable via the settings asset and the in-console settings (never / on error / on error or warning / always)
+- LogReceiver now owns the per type log counters, so every counter view shares one source of truth
+
 # v2.1.7 by Winzardy
 ## Improvements
 - Subscribe LogReceiver to logMessageReceivedThreaded event

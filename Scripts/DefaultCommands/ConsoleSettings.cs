@@ -36,6 +36,9 @@ namespace MobileConsole
 		[Variable(OnValueChanged = "UpdateShowFPS")]
 		public bool _showFPS;
 
+		[Variable(OnValueChanged = "UpdateLogCounterBadgeMode")]
+		public LogCounterBadgeMode _logCounterBadgeMode;
+
 		[Variable(OnValueChanged = "UpdateShowTimestamp")]
 		public bool _showTimestamp;
 
@@ -48,6 +51,7 @@ namespace MobileConsole
 		public override void InitDefaultVariableValue()
 		{
 			_showFPS = LogConsoleSettings.Instance.showFPS;
+			_logCounterBadgeMode = LogConsoleSettings.Instance.logCounterBadgeMode;
 			_showTimestamp = LogConsoleSettings.Instance.showTimestamp;
 			_showChannel = LogConsoleSettings.Instance.showLogChannel;
 			_windowWidth = LogConsoleSettings.Instance.windowWidth;
@@ -67,6 +71,12 @@ namespace MobileConsole
 		{
 			LogConsoleSettings.Instance.showFPS = _showFPS;
 			EventBridge.NotifyFPSVisibilityChanged();
+		}
+
+		void UpdateLogCounterBadgeMode()
+		{
+			LogConsoleSettings.Instance.logCounterBadgeMode = _logCounterBadgeMode;
+			EventBridge.NotifyLogCounterBadgeModeChanged();
 		}
 
 		void UpdateShowTimestamp()

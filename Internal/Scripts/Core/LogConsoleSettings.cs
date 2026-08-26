@@ -27,6 +27,9 @@ namespace MobileConsole
 		[Header("FPS")]
 		public bool showFPS = true;
 
+		[Header("Log Counter Badge")]
+		public LogCounterBadgeMode logCounterBadgeMode = LogCounterBadgeMode.OnErrorOrWarning;
+
 		[Header("Search")]
 		public bool useRegexSearch = true;
 

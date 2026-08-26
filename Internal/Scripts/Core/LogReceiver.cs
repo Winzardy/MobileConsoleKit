@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Threading;
 using UnityEngine;
 
 namespace MobileConsole
@@ -8,14 +9,40 @@ namespace MobileConsole
 	{
 		public delegate void LogCallback(LogInfo logInfo);
 		public static event LogCallback OnLogReceived;
+
+		public delegate void CountCallback();
+
+		/// <summary>
+		/// Raised whenever the per type counters change (a log was received, or Clear() was called).
+		/// WARNING: logs are received on any thread, so this can be raised from a background thread.
+		/// Handlers must not touch the Unity API directly.
+		/// </summary>
+		public static event CountCallback OnLogCountChanged;
+
 		static Pool<LogInfo> _logInfoPool;
 		static List<LogInfo> _logInfos = new List<LogInfo>();
 		static object _logInfosLock = new object();
 		static int _limitCharacterView = 200;
 
-        internal static List<LogInfo> LogInfos
+		internal static List<LogInfo> LogInfos
 		{
 			get { return _logInfos; }
+		}
+
+		static int _numLogInfo;
+		static int _numLogWarning;
+		static int _numLogError;
+
+		public static int NumLogInfo => Volatile.Read(ref _numLogInfo);
+		public static int NumLogWarning => Volatile.Read(ref _numLogWarning);
+		public static int NumLogError => Volatile.Read(ref _numLogError);
+
+		/// <summary>
+		/// Shared display formatting, so every counter view shows the exact same value.
+		/// </summary>
+		public static string FormatCount(int count)
+		{
+			return count > 999 ? "999+" : count.ToString();
 		}
 
         public static void Init()
@@ -63,6 +90,13 @@ namespace MobileConsole
 				lock (_logInfosLock)
 				{
 					_logInfos.Add(logInfo);
+					IncreaseLogNumber(logInfo.type);
+				}
+
+				// Notify the counters first, so a OnLogReceived handler reading them sees a consistent state
+				if (OnLogCountChanged != null)
+				{
+					OnLogCountChanged();
 				}
 
 				if (OnLogReceived != null)
@@ -86,6 +120,32 @@ namespace MobileConsole
 #endif
 					_logInfos.Clear();
 				}
+
+				Interlocked.Exchange(ref _numLogInfo, 0);
+				Interlocked.Exchange(ref _numLogWarning, 0);
+				Interlocked.Exchange(ref _numLogError, 0);
+			}
+
+			if (OnLogCountChanged != null)
+			{
+				OnLogCountChanged();
+			}
+		}
+
+		// The type is already collapsed by ConvertLogType, so there are only 3 buckets
+		static void IncreaseLogNumber(LogType convertedType)
+		{
+			switch (convertedType)
+			{
+				case LogType.Warning:
+					Interlocked.Increment(ref _numLogWarning);
+					break;
+				case LogType.Error:
+					Interlocked.Increment(ref _numLogError);
+					break;
+				default:
+					Interlocked.Increment(ref _numLogInfo);
+					break;
 			}
 		}
 

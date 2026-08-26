@@ -10,7 +10,7 @@ namespace MobileConsole.Editor
 {
 	public static class MobileconsoleSetupHelper
 	{
-		const string ToolVersion = "2.1.7";
+		const string ToolVersion = "2.1.8";
 		const string DebugLogDefineSymbol = "DebugLog";
 		const string SettingsResourceName = "LogConsoleSettings";
 		const string SettingsAssetPath = "Assets/Resources/LogConsoleSettings.asset";

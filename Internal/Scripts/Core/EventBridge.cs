@@ -13,6 +13,7 @@
         internal static event Callback OnTimestampVisibilityChanged;
 		internal static event Callback OnChannelVisibilityChanged;
         internal static event Callback OnFPSVisibilityChanged;
+		internal static event Callback OnLogCounterBadgeModeChanged;
 		public static event Callback OnBackgroundTransparencyChanged;
         public static event CallbackString OnShareLog;
 		public static event CallbackString OnShareAllLog;
@@ -52,6 +53,14 @@
 			if (OnFPSVisibilityChanged != null)
 			{
 				OnFPSVisibilityChanged();
+			}
+		}
+
+		public static void NotifyLogCounterBadgeModeChanged()
+		{
+			if (OnLogCounterBadgeModeChanged != null)
+			{
+				OnLogCounterBadgeModeChanged();
 			}
 		}
 
