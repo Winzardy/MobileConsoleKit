@@ -85,25 +85,7 @@ namespace MobileConsole.UI
 
 			// Append log infos
 			List<LogInfo> logInfos = _shareConfig.useCurrentFilter ? _filteredLogs : LogReceiver.LogInfos;
-			foreach (var logInfo in logInfos)
-			{
-				if (logEnables[logInfo.type])
-				{
-					sb.Append(string.Format("[{0}] ", logInfo.type.ToString()));
-					sb.Append(logInfo.time);
-					if (logInfo.channelInfo != null)
-					{
-						sb.AppendFormat(LogConsoleSettings.Instance.channelFormat, logInfo.channelInfo.name);
-					}
-					sb.AppendLine(logInfo.message);
-					if (stacktraceEnables[logInfo.type])
-					{
-						sb.AppendLine("------------------");
-						sb.AppendLine(logInfo.stackTrace);
-						sb.AppendLine();
-					}
-				}
-			}
+			LogTextFormatter.Append(sb, logInfos, type => logEnables[type], type => stacktraceEnables[type]);
 
             EventBridge.NotifyShareAllLog(sb.ToString());
         }

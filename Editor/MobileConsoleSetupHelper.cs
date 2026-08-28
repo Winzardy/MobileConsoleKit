@@ -10,7 +10,7 @@ namespace MobileConsole.Editor
 {
 	public static class MobileconsoleSetupHelper
 	{
-		const string ToolVersion = "2.1.8";
+		const string ToolVersion = "2.2.0";
 		const string DebugLogDefineSymbol = "DebugLog";
 		const string SettingsResourceName = "LogConsoleSettings";
 		const string SettingsAssetPath = "Assets/Resources/LogConsoleSettings.asset";
@@ -82,7 +82,7 @@ namespace MobileConsole.Editor
 		[MenuItem("Tools/Mobile Console/Online Manual", false, 41)]
 		public static void OpenOnlineManual()
 		{
-			Application.OpenURL("https://github.com/pixeption/MobileConsoleKit");
+			Application.OpenURL("https://github.com/Winzardy/MobileConsoleKit");
 		}
 
 		[MenuItem("Tools/Mobile Console/About", false, 42)]

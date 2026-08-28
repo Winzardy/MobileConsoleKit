@@ -21,10 +21,15 @@ namespace MobileConsole
 		public static event EventVisibilityChanged OnVisibilityChanged;
 
 		private delegate void SubViewCallback(ViewBuilder viewBuilder);
+		private delegate void LogInfoCallback(LogInfo logInfo);
+		private delegate void BugReporterCallback(BugReporter reporter, LogInfo logInfo);
 		private static event SubViewCallback OnSubViewPushed;
 		private static event Callback OnSubViewPoped;
 		private static event Callback OnAllSubViewClosed;
         private static event Callback OnShareAllLogRequest;
+		private static event LogInfoCallback OnBugReportRequested;
+		private static event BugReporterCallback OnBugReportForReporterRequested;
+		private static event CallbackBool OnRenderingChangeRequested;
 
 		public delegate void EventCommandsCreated(ReadOnlyCollection<Command> commands);
 		public static event EventCommandsCreated OnCommandsCreated;
@@ -54,6 +59,8 @@ namespace MobileConsole
 		CommandViewBuilder _commandViewBuilder;
 		ShareLogViewBuilder _shareLogViewBuilder;
 		ChannelViewBuilder _channelViewBuilder;
+		BugReportController _bugReportController;
+		Canvas _canvas;
 
 		List<ViewBuilder> _stackViewBuilders = new List<ViewBuilder>();
 		RectTransform _logPanelRectTransform;
@@ -68,6 +75,7 @@ namespace MobileConsole
 			}
 
 			DontDestroyOnLoad(gameObject);
+			_canvas = GetComponent<Canvas>();
 			UpdateCanvasScaler();
 			InitViewBuilders();
 			InitCommands();
@@ -92,6 +100,9 @@ namespace MobileConsole
 			OnSubViewPoped = _PopSubView;
 			OnAllSubViewClosed = _CloseAllSubView;
             OnShareAllLogRequest = _OnShareAllLogRequest;
+			OnBugReportRequested = _OpenBugReportView;
+			OnBugReportForReporterRequested = _OpenBugReportViewForReporter;
+			OnRenderingChangeRequested = _SetRenderingEnabled;
 			
 			_logButton.SetActive(LogConsoleSettings.Instance.useLogButton);
 		}
@@ -114,6 +125,7 @@ namespace MobileConsole
 			_shareLogViewBuilder = new ShareLogViewBuilder(_logView.FilterLogInfos);
 			_channelViewBuilder = new ChannelViewBuilder();
 			_channelViewBuilder.OnHide += OnChannelViewClosed;
+			_bugReportController = new BugReportController(this, _logView.FilterLogInfos);
 		}
 
 		void InitCommands()
@@ -293,6 +305,143 @@ namespace MobileConsole
 		public void OpenShareLogView()
 		{
 			_PushSubView(_shareLogViewBuilder);
+		}
+
+		/// <summary>
+		/// Opens the bug report window. Does nothing until a project registers at least one
+		/// <see cref="BugReporter"/> in <see cref="BugReportService"/>.
+		/// </summary>
+		/// <param name="logInfo">The log the report is opened from, null for the whole log list.</param>
+		public static void OpenBugReport(LogInfo logInfo = null)
+		{
+			if (OnBugReportRequested != null)
+			{
+				OnBugReportRequested(logInfo);
+			}
+		}
+
+		/// <summary>
+		/// Opens the bug report window for one specific reporter, skipping the picker even when
+		/// more than one is registered. Use this to wire a button to a single tracker directly.
+		/// </summary>
+		/// <param name="reporter">The reporter to open, as registered with <see cref="BugReportService.Register"/>.</param>
+		/// <param name="logInfo">The log the report is opened from, null for the whole log list.</param>
+		public static void OpenBugReport(BugReporter reporter, LogInfo logInfo = null)
+		{
+			if (OnBugReportForReporterRequested != null)
+			{
+				OnBugReportForReporterRequested(reporter, logInfo);
+			}
+		}
+
+		/// <summary>
+		/// Opens the bug report window for the reporter registered under this name (see
+		/// <see cref="BugReporter.name"/>), skipping the picker even when more than one is registered.
+		/// </summary>
+		/// <param name="reporterName">The name the reporter was registered under.</param>
+		/// <param name="logInfo">The log the report is opened from, null for the whole log list.</param>
+		public static void OpenBugReport(string reporterName, LogInfo logInfo = null)
+		{
+			BugReporter reporter = BugReportService.FindReporter(reporterName);
+			if (reporter == null)
+			{
+				Debug.LogWarningFormat("There is no bug reporter registered named '{0}'", reporterName);
+				return;
+			}
+
+			OpenBugReport(reporter, logInfo);
+		}
+
+		public void OpenBugReportView()
+		{
+			_OpenBugReportView(null);
+		}
+
+		void _OpenBugReportView(LogInfo logInfo)
+		{
+			_bugReportController.Open(logInfo);
+		}
+
+		void _OpenBugReportViewForReporter(BugReporter reporter, LogInfo logInfo)
+		{
+			_bugReportController.Open(reporter, logInfo);
+		}
+
+		/// <summary>
+		/// Everything needed to open the bug report window: picking a reporter when more than one
+		/// is registered, remembering which log the report was opened from, and forwarding to the
+		/// package's own view builders. Kept separate so the bug report state and flow don't spill
+		/// across the rest of <see cref="LogConsole"/>.
+		/// </summary>
+		class BugReportController
+		{
+			readonly LogConsole _console;
+			readonly BugReportViewBuilder _viewBuilder;
+			readonly BugReporterPickerViewBuilder _pickerViewBuilder;
+			LogInfo _pendingLog;
+
+			public BugReportController(LogConsole console, List<LogInfo> filteredLogs)
+			{
+				_console = console;
+				_viewBuilder = new BugReportViewBuilder(filteredLogs);
+				_pickerViewBuilder = new BugReporterPickerViewBuilder(OnReporterSelected);
+			}
+
+			public void Open(LogInfo logInfo)
+			{
+				if (!BugReportService.isAvailable)
+				{
+					Debug.LogWarning("There is no bug reporter registered, use BugReportService.Register to add one");
+					return;
+				}
+
+				if (BugReportService.reporters.Count == 1)
+				{
+					Open(BugReportService.reporters[0], logInfo);
+				}
+				else
+				{
+					_pendingLog = logInfo;
+					_console._PushSubView(_pickerViewBuilder);
+				}
+			}
+
+			/// <summary>Opens one specific reporter directly, skipping the picker.</summary>
+			public void Open(BugReporter reporter, LogInfo logInfo)
+			{
+				if (reporter == null)
+				{
+					Debug.LogWarning("BugReportController.Open was called with a null reporter");
+					return;
+				}
+
+				_viewBuilder.Setup(reporter, logInfo);
+				_console._PushSubView(_viewBuilder);
+			}
+
+			void OnReporterSelected(BugReporter reporter)
+			{
+				Open(reporter, _pendingLog);
+			}
+		}
+
+		/// <summary>
+		/// Hides the console canvas for a moment, so a screenshot shows the game and not the console.
+		/// </summary>
+		internal static void SetRenderingEnabled(bool enabled)
+		{
+			if (OnRenderingChangeRequested != null)
+			{
+				OnRenderingChangeRequested(enabled);
+			}
+		}
+
+		void _SetRenderingEnabled(bool enabled)
+		{
+			if (_canvas != null)
+			{
+				_canvas.enabled = enabled;
+			}
 		}
 
 		public void OpenChannelView()

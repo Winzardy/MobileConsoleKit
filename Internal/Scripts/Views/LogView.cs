@@ -33,6 +33,10 @@ namespace MobileConsole.UI
 		[SerializeField]
 		AssetConfig _assetConfig;
 
+		[SerializeField]
+		[Tooltip("Hidden until a project registers a BugReporter")]
+		GameObject _buttonBugReport;
+
 		LogDetailViewBuilder _logDetailViewBuilder = new LogDetailViewBuilder();
 
 		List<LogInfo> _filterLogInfos = new List<LogInfo>();
@@ -61,6 +65,9 @@ namespace MobileConsole.UI
 			LogFilter.OnChannelConfigChanged += OnChannelConfigChanged;
 			EventBridge.OnTimestampVisibilityChanged += UpdateActiveCells;
 			EventBridge.OnChannelVisibilityChanged += UpdateActiveCells;
+			BugReportService.OnReportersChanged += UpdateBugReportButton;
+
+			UpdateBugReportButton();
 		}
 
 		void OnDestroy()
@@ -69,6 +76,15 @@ namespace MobileConsole.UI
 			LogFilter.OnChannelConfigChanged -= OnChannelConfigChanged;
 			EventBridge.OnTimestampVisibilityChanged -= UpdateActiveCells;
 			EventBridge.OnChannelVisibilityChanged -= UpdateActiveCells;
+			BugReportService.OnReportersChanged -= UpdateBugReportButton;
+		}
+
+		void UpdateBugReportButton()
+		{
+			if (_buttonBugReport != null)
+			{
+				_buttonBugReport.SetActive(BugReportService.isAvailable);
+			}
 		}
 
 		void SetupLogFilter()

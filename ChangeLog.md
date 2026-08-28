@@ -1,3 +1,7 @@
+# v2.2.0 by Winzardy
+## Improvements
+- Bug report window: a bug button next to the share button in the log list and in the log detail window opens a form that sends the issue to a bug tracker
+
 # v2.1.8 by Winzardy
 ## Improvements
 - Error/warning counter badge in the bottom right corner, configurable via the settings asset and the in-console settings (never / on error / on error or warning / always)

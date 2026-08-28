@@ -13,11 +13,15 @@ namespace MobileConsole.UI
 			actionButtonIcon = "share";
 			actionButtonCallback = OnShareLog;
 			saveScrollViewPosition = false;
+
+			// Stays hidden until a project registers a bug tracker integration
+			secondActionButtonIcon = BugReportService.DefaultIcon;
 		}
 
 		public void SetLogInfo(LogInfo logInfo, string iconName)
 		{
 			_logInfo = logInfo;
+			secondActionButtonCallback = BugReportService.isAvailable ? (Callback)OnReportBug : null;
 			ClearNodes();
 
 			// Build log message
@@ -60,6 +64,11 @@ namespace MobileConsole.UI
 			sb.AppendLine(_logInfo.stackTrace);
 
 			EventBridge.NotifyShareLog(sb.ToString());
+		}
+
+		void OnReportBug()
+		{
+			LogConsole.OpenBugReport(_logInfo);
 		}
 	}
 }

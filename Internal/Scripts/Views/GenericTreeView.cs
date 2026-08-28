@@ -27,6 +27,10 @@ namespace MobileConsole.UI
 		protected GameObject _actionButton;
 
 		[SerializeField]
+		[Tooltip("Hidden unless the view builder sets a second action")]
+		protected GameObject _secondActionButton;
+
+		[SerializeField]
 		protected RecycleScrollView _scrollView;
 
 		[SerializeField]
@@ -36,7 +40,10 @@ namespace MobileConsole.UI
 
 		List<Node> _filterNodes = new List<Node>();
 		ViewBuilder _viewBuilder;
-		ActionButtonFeedbackAnimator _actionButtonFeedbackAnimator;
+		ActionButtonFeedbackAnimator _actionAnimator;
+		ActionButtonFeedbackAnimator _secondActionAnimator;
+		float _defaultTitleWidth;
+		float _defaultTitlePositionX;
 		protected string _filterString;
 		bool _isInitialized = false;
 		bool _isPreparingView = false;
@@ -55,6 +62,13 @@ namespace MobileConsole.UI
 				_isInitialized = true;
 				_scrollView.AddCellTemplates(_config.cellTemplates);
 				_scrollView.SetDelegate(this);
+
+				_actionAnimator = new ActionButtonFeedbackAnimator(this);
+				_secondActionAnimator = new ActionButtonFeedbackAnimator(this);
+
+				RectTransform titleTransform = (RectTransform)_title.transform;
+				_defaultTitleWidth = titleTransform.sizeDelta.x;
+				_defaultTitlePositionX = titleTransform.anchoredPosition.x;
 			}
 
 			ClearOldBuilder();
@@ -69,7 +83,8 @@ namespace MobileConsole.UI
 
 		void ClearOldBuilder()
 		{
-			_actionButtonFeedbackAnimator?.Stop();
+			_actionAnimator?.Stop();
+			_secondActionAnimator?.Stop();
 
 			if (_viewBuilder != null)
 			{
@@ -106,31 +121,7 @@ namespace MobileConsole.UI
 
 			// Update buttons
 			_backButton.SetActive(true);
-			bool hasActionButton = _viewBuilder.actionButtonCallback != null;
-			_actionButton.SetActive(hasActionButton);
-			if (_actionButtonFeedbackAnimator == null)
-			{
-				_actionButtonFeedbackAnimator = new ActionButtonFeedbackAnimator(this);
-			}
-
-			Image actionButtonImage = null;
-			Color actionButtonColor = Color.white;
-			AssetConfig.SpriteInfo spriteInfo = _config.GetSpriteInfo(_viewBuilder.actionButtonIcon);
-			if (hasActionButton)
-			{
-				actionButtonImage = GetActionButtonImage();
-				if (actionButtonImage != null)
-				{
-					if (spriteInfo != null)
-					{
-						actionButtonImage.sprite = spriteInfo.sprite;
-						actionButtonImage.color = spriteInfo.color;
-					}
-
-					actionButtonColor = actionButtonImage.color;
-				}
-			}
-			_actionButtonFeedbackAnimator.Setup(actionButtonImage, actionButtonColor);
+			UpdateActionButtons();
 
 			// Rebuild the whole tree
             _viewBuilder.Rebuild();
@@ -234,32 +225,79 @@ namespace MobileConsole.UI
 
 		public void OnAction()
 		{
-			if (_viewBuilder.actionButtonCallback != null)
+			if (_viewBuilder == null)
+				return;
+
+			InvokeAction(_viewBuilder.actionButtonCallback, _viewBuilder.actionAfterExecuted, _actionAnimator);
+		}
+
+		public void OnSecondAction()
+		{
+			if (_viewBuilder == null)
+				return;
+
+			InvokeAction(_viewBuilder.secondActionButtonCallback, _viewBuilder.secondActionAfterExecuted, _secondActionAnimator);
+		}
+
+		void InvokeAction(ViewBuilder.Callback callback, ActionAfterExecuted actionAfterExecuted, ActionButtonFeedbackAnimator animator)
+		{
+			if (callback == null)
+				return;
+
+			try
 			{
-				try
-				{
-					_viewBuilder.actionButtonCallback();
-					_viewBuilder.actionAfterExecuted.Process();
-					_actionButtonFeedbackAnimator?.Play();
-				}
-				catch (Exception e)
-				{
-					Debug.LogException(e);
-				}
+				callback();
+				actionAfterExecuted.Process();
+				animator.Play();
+			}
+			catch (Exception e)
+			{
+				Debug.LogException(e);
 			}
 		}
 
-		Image GetActionButtonImage()
+		void UpdateActionButtons()
 		{
-			if (_actionButton == null)
+			bool hasSecondAction = _viewBuilder.secondActionButtonCallback != null;
+			SetupActionButton(_actionButton, _actionAnimator, _viewBuilder.actionButtonCallback != null, _viewBuilder.actionButtonIcon);
+			SetupActionButton(_secondActionButton, _secondActionAnimator, hasSecondAction, _viewBuilder.secondActionButtonIcon);
+
+			// Shrink the title so a long one does not run under the second button
+			RectTransform titleTransform = (RectTransform)_title.transform;
+			float reserved = hasSecondAction && _secondActionButton != null
+				? ((RectTransform)_secondActionButton.transform).rect.width
+				: 0f;
+			titleTransform.sizeDelta = new Vector2(_defaultTitleWidth - reserved, titleTransform.sizeDelta.y);
+			titleTransform.anchoredPosition = new Vector2(_defaultTitlePositionX - reserved * 0.5f, titleTransform.anchoredPosition.y);
+		}
+
+		void SetupActionButton(GameObject buttonObject, ActionButtonFeedbackAnimator animator, bool isVisible, string icon)
+		{
+			if (buttonObject == null)
+				return;
+
+			buttonObject.SetActive(isVisible);
+
+			Image image = isVisible ? GetActionButtonImage(buttonObject) : null;
+			if (image != null)
 			{
-				return null;
+				AssetConfig.SpriteInfo spriteInfo = _config.GetSpriteInfo(icon);
+				if (spriteInfo != null)
+				{
+					image.sprite = spriteInfo.sprite;
+					image.color = spriteInfo.color;
+				}
 			}
 
-			Button button = _actionButton.GetComponent<Button>();
+			animator.Setup(image, image != null ? image.color : Color.white);
+		}
+
+		Image GetActionButtonImage(GameObject buttonObject)
+		{
+			Button button = buttonObject.GetComponent<Button>();
 			return button != null && button.targetGraphic is Image targetImage
 				? targetImage
-				: _actionButton.GetComponentInChildren<Image>();
+				: buttonObject.GetComponentInChildren<Image>();
 		}
 
 		public void OnExpandAll()

@@ -29,6 +29,13 @@ namespace MobileConsole.UI
 		public Callback actionButtonCallback;
 		public string actionButtonIcon;
 		public ActionAfterExecuted actionAfterExecuted = ActionAfterExecuted.CloseAllSubView;
+
+		/// <summary>Optional second header button, rendered to the left of the main action button.</summary>
+		public Callback secondActionButtonCallback;
+		public string secondActionButtonIcon;
+
+		/// <summary>The second button usually opens another view, so it closes nothing by default.</summary>
+		public ActionAfterExecuted secondActionAfterExecuted = ActionAfterExecuted.DoNothing;
 		public bool saveScrollViewPosition = true;
 		public Vector2 scrollViewPosition = new Vector2(0f, 1f);
 		public string filterString = string.Empty;

@@ -43,7 +43,12 @@ namespace MobileConsole
 
 		public static void CacheVariableInfos(this Command command, Type type)
 		{
-			FieldInfo[] fieldInfos = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+			// Not DeclaredOnly: option classes commonly inherit shared fields from a base class
+			// (e.g. BaseBugReporter.Options). Fields declared on Command itself (info, refreshUI)
+			// are plumbing, not user-editable options, so they're filtered out below.
+			FieldInfo[] fieldInfos = type.GetFields(BindingFlags.Instance | BindingFlags.Public)
+				.Where(fieldInfo => fieldInfo.DeclaringType != typeof(Command))
+				.ToArray();
 			List<VariableInfo> variableInfos = new List<VariableInfo>();
 
 			foreach (var fieldInfo in fieldInfos)
