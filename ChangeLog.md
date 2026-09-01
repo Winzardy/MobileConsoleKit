@@ -1,6 +1,7 @@
 # v2.2.0 by Winzardy
 ## Improvements
 - Bug report window: a bug button next to the share button in the log list and in the log detail window opens a form that sends the issue to a bug tracker
+- `AppAndDeviceInfo.RegisterCustomInfoProvider`/`UnregisterCustomInfoProvider`: register your own callback, keyed by title, to append a custom section to `AppAndDeviceInfo.FullInfos()`
 
 # v2.1.8 by Winzardy
 ## Improvements
